@@ -1,3 +1,10 @@
+#Unit Testing
+state =  [ [0x19,0xa0,0x9a,0xe9],
+            [0x3d,0xf4,0xc6,0xf8],
+            [0xe3,0xe2,0x8d,0x48],
+            [0xbe,0x2b,0x2a,0x08]];
+
+
 Rcon = [ 0x00000000,
            0x01000000, 0x02000000, 0x04000000, 0x08000000,
            0x10000000, 0x20000000, 0x40000000, 0x80000000,
@@ -54,3 +61,36 @@ InvSbox = [
 xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
 
 def ffAdd(a, b): return a ^ b
+
+#ffMultiply
+
+#subWord() - takes a four-byte input word and substitutes each byte in that
+#word with its appropriate value from the S-Box. The S-box is provided (see Section 5.1.1).
+
+#rotWord() - performs a cyclic permutation on its input word.
+
+#subBytes
+def subBytes(matrix):
+    for i in range(4):
+        for j in range(4):
+            x = hex(matrix[i][j])[-2]
+            if (x == "x"):
+                x = 0
+            else:
+                x = int(x, 16)
+            y = hex(matrix[i][j])[-1]
+            y = int(y, 16)
+
+            matrix[i][j] = Sbox[x][y]
+
+####################
+#Helper Functions
+####################
+
+#print matrix as Hexidecimal
+def conHex(matrix):
+    temp = [[0 for x in range(4)] for y in range(4)]
+    for i in range(4):
+        for j in range(4):
+            temp[i][j] = hex(matrix[i][j])
+    return temp;
