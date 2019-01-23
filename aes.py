@@ -58,18 +58,24 @@ InvSbox = [
     [ 0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d ]
     ];
 
-xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
-
+#ffAdd() - adds two finite fields (see Section 4.1)
+#I don't really ever use this since in Python it's just ^, but I figured I should include it
 def ffAdd(a, b): return a ^ b
 
-#ffMultiply
+#xtime() - multiplies a finite field by x (see Section 4.2.1)
+xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
+
+#ffMultiply() - - uses xtime to multiply any finite field by any other finite field. (see Section 4.2.1)
+
 
 #subWord() - takes a four-byte input word and substitutes each byte in that
 #word with its appropriate value from the S-Box. The S-box is provided (see Section 5.1.1).
 
+
 #rotWord() - performs a cyclic permutation on its input word.
 
-#subBytes
+
+#subBytes - This transformation substitutes each byte in the State with its corresponding value from the S-Box.
 def subBytes(matrix):
     for i in range(4):
         for j in range(4):
@@ -82,6 +88,30 @@ def subBytes(matrix):
             y = int(y, 16)
 
             matrix[i][j] = Sbox[x][y]
+
+#shiftRows() - This transformation performs a circular shift on each row in the State (see Section 5.1.2)
+def shiftRows(m):
+    m[1][0], m[1][1], m[1][2], m[1][3] = m[1][1], m[1][2], m[1][3], m[1][0]
+    m[2][0], m[2][1], m[2][2], m[2][3] = m[2][2], m[2][3], m[2][0], m[2][1]
+    m[3][0], m[3][1], m[3][2], m[3][3] = m[3][3], m[3][0], m[3][1], m[3][2]
+
+#mixColumns() - This transformation treats each column in state as a four-term polynomial.
+#This polynomial is multiplied (modulo another polynomial)
+#by a fixed polynomial with coefficients (see Sections 4.3 and 5.1.3).
+def mixSingleColumn(a, i):
+    t = a[0][i] ^ a[1][i] ^ a[2][i] ^ a[3][i]
+    u = a[0][i]
+    a[0][i] ^= t ^ xtime(a[0][i] ^ a[1][i])
+    a[1][i] ^= t ^ xtime(a[1][i] ^ a[2][i])
+    a[2][i] ^= t ^ xtime(a[2][i] ^ a[3][i])
+    a[3][i] ^= t ^ xtime(a[3][i] ^ u)
+
+def mixColumns(m):
+    for i in range(4):
+        mixSingleColumn(m, i)
+
+#addRoundKey() - This transformation adds a round key to the State using XOR.
+
 
 ####################
 #Helper Functions
