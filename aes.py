@@ -1,6 +1,6 @@
 import copy
 
-#Unit Testing
+############## Unit Testing States ##################
 state =  [ [0x19,0xa0,0x9a,0xe9],
             [0x3d,0xf4,0xc6,0xf8],
             [0xe3,0xe2,0x8d,0x48],
@@ -10,7 +10,7 @@ testRound = [ [0xa4, 0x68, 0x6b, 0x02],
                 [0x9c, 0x9f, 0x5b, 0x6a],
                 [0x7f, 0x35, 0xea, 0x50],
                 [0xf2, 0x2b, 0x43, 0x49]];
-
+######################################################
 
 Rcon = [ 0x00000000,
            0x01000000, 0x02000000, 0x04000000, 0x08000000,
@@ -86,9 +86,24 @@ def ffMultiply(a, b):
 
 #subWord() - takes a four-byte input word and substitutes each byte in that
 #word with its appropriate value from the S-Box. The S-box is provided (see Section 5.1.1).
-
+def subWord(word):
+    build = '0x'
+    hexWord = '{:08x}'.format(word)
+    for i in range(0, len(hexWord), 2):
+        x = int(hexWord[i], 16)
+        y = int(hexWord[i+1], 16)
+        subbed = Sbox[x][y]
+        primed = '{:02x}'.format(subbed)
+        build = build + primed
+    return int(build, 16)
 
 #rotWord() - performs a cyclic permutation on its input word.
+def rotWord(word):
+    hexWord = '{:08x}'.format(word)
+    clip = hexWord[:2]
+    base = hexWord[2:]
+    combined = base + clip
+    return int(combined, 16)
 
 
 #subBytes - This transformation substitutes each byte in the State with its corresponding value from the S-Box.
@@ -201,6 +216,69 @@ def addRoundKey(s, k):
         for j in range(4):
             s[i][j] ^= k[i][j]
 
+# def keyExpansion(byte key[4*Nk], word w[Nb*(Nr+1)], Nk):
+#     begin
+#         word temp
+#         i = 0
+#         while (i < Nk)
+#             w[i] = word(key[4*i], key[4*i+1], key[4*i+2], key[4*i+3])
+#             i = i+1
+#         end while
+#         i = Nk
+#         while (i < Nb * (Nr+1)]
+#             temp = w[i-1]
+#             if (i mod Nk = 0)
+#             temp = SubWord(RotWord(temp)) xor Rcon[i/Nk]
+#             else if (Nk > 6 and i mod Nk = 4)
+#                 temp = SubWord(temp)
+#             end if
+#             w[i] = w[i-Nk] xor temp
+#             i = i + 1
+#         end while
+#     end
+
+def byteToMatrix(text):
+    matrix = [[0 for _ in range(4)] for _ in range(4)]
+    bytes = []
+    for i in range(0, len(text), 2):
+        val = int(text[i:i+2], 16)
+        # print(type(val))
+        bytes.append(val)
+    for j in range(4):
+        for k in range(4):
+            matrix[k][j] = bytes[-1]
+            del bytes[-1]
+    return matrix
+
+def matrixToByte(matrix):
+    bytes = []
+    for i in range(4):
+        for j in range(4):
+            cell = '{:02x}'.format(matrix[j][i])
+            bytes.append(cell)
+    return ''.join(bytes[::-1])
+
+def encrypt(plainText, key): #looks like the input is always going to be 16 bytes of hex
+    return None
+
+def decrypt(cipherText, key):
+    InvCipher(byte in[4*Nb], byte out[4*Nb], word w[Nb*(Nr+1)])
+    begin
+        byte state[4,Nb]
+        state = in
+        AddRoundKey(state, w[Nr*Nb, (Nr+1)*Nb-1]) // See Sec. 5.1.4
+        for round = Nr-1 step -1 downto 1
+            InvShiftRows(state) // See Sec. 5.3.1
+            InvSubBytes(state) // See Sec. 5.3.2
+            AddRoundKey(state, w[round*Nb, (round+1)*Nb-1])
+            InvMixColumns(state) // See Sec. 5.3.3
+        end for
+        InvShiftRows(state)
+        InvSubBytes(state)
+        AddRoundKey(state, w[0, Nb-1])
+
+        out = state
+    end
 
 ####################
 # Helper Functions
@@ -214,27 +292,65 @@ def conHex(matrix):
             temp[i][j] = hex(matrix[i][j])
     return temp;
 
-print('\n')
-print('Encoding!!!!--------------------------------')
-print(conHex(state))
-subBytes(state)
-print(conHex(state))
-shiftRows(state)
-print(conHex(state))
-mixColumns(state)
-print(conHex(state))
-addRoundKey(state, testRound)
-print(conHex(state))
 
-print('\n')
+####################
+# Unit Tests
+####################
 
-print('Decoding!!!!---------------------------------')
-print(conHex(state))
-addRoundKey(state, testRound)
-print(conHex(state))
-invMixColumns(state)
-print(conHex(state))
-invShiftRows(state)
-print(conHex(state))
-invSubBytes(state)
-print(conHex(state))
+def ffaTest():
+    print('ffAdd Test:')
+    print(ffAdd(0x57,0x83) == 0xd4)
+    print('xtime Tests:')
+    print(xtime(0x57) == 0xae)
+    print(xtime(0xae) == 0x47)
+    print(xtime(0x47) == 0x8e)
+    print(xtime(0x8e) == 0x07)
+    print('ffMultiply Test:')
+    print(ffMultiply(0x57,0x13) == 0xfe)
+
+def keyExpansionTest():
+    print('subWord tests:')
+    print(subWord(0x00102030) == 0x63cab704)
+    print(subWord(0x40506070) == 0x0953d051)
+    print(subWord(0x8090a0b0) == 0xcd60e0e7)
+    print(subWord(0xc0d0e0f0) == 0xba70e18c)
+
+    print('rotWord tests:')
+    print(rotWord(0x09cf4f3c) == 0xcf4f3c09)
+    print(rotWord(0x2a6c7605) == 0x6c76052a)
+
+def encodeTest():
+    print('/n')
+    print('Encoding!!!!--------------------------------')
+    print('Base State')
+    print(conHex(state))
+    print('subBytes')
+    subBytes(state)
+    print(conHex(state))
+    print('shiftRows')
+    shiftRows(state)
+    print(conHex(state))
+    print('mixColumns')
+    mixColumns(state)
+    print(conHex(state))
+    print('addRoundKey')
+    addRoundKey(state, testRound)
+    print(conHex(state))
+
+def decodeTest():
+    print('\n')
+    print('Decoding!!!!---------------------------------')
+    print('Base State')
+    print(conHex(state))
+    print('addRoundKey')
+    addRoundKey(state, testRound)
+    print(conHex(state))
+    print('invMixColumns')
+    invMixColumns(state)
+    print(conHex(state))
+    print('invShiftRows')
+    invShiftRows(state)
+    print(conHex(state))
+    print('invSubBytes')
+    invSubBytes(state)
+    print(conHex(state))
