@@ -6,6 +6,11 @@ state =  [ [0x19,0xa0,0x9a,0xe9],
             [0xe3,0xe2,0x8d,0x48],
             [0xbe,0x2b,0x2a,0x08]];
 
+testRound = [ [0xa4, 0x68, 0x6b, 0x02],
+                [0x9c, 0x9f, 0x5b, 0x6a],
+                [0x7f, 0x35, 0xea, 0x50],
+                [0xf2, 0x2b, 0x43, 0x49]];
+
 
 Rcon = [ 0x00000000,
            0x01000000, 0x02000000, 0x04000000, 0x08000000,
@@ -218,10 +223,14 @@ shiftRows(state)
 print(conHex(state))
 mixColumns(state)
 print(conHex(state))
+addRoundKey(state, testRound)
+print(conHex(state))
 
 print('\n')
 
 print('Decoding!!!!---------------------------------')
+print(conHex(state))
+addRoundKey(state, testRound)
 print(conHex(state))
 invMixColumns(state)
 print(conHex(state))
