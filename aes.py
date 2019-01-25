@@ -1,3 +1,5 @@
+import copy
+
 #Unit Testing
 state =  [ [0x19,0xa0,0x9a,0xe9],
             [0x3d,0xf4,0xc6,0xf8],
@@ -66,7 +68,16 @@ def ffAdd(a, b): return a ^ b
 xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
 
 #ffMultiply() - - uses xtime to multiply any finite field by any other finite field. (see Section 4.2.1)
-
+def ffMultiply(a, b):
+    p = 0
+    hi_bit_set = 0
+    for i in range(8):
+        if b & 1 == 1: p ^= a
+        hi_bit_set = a & 0x80
+        a <<= 1
+        if hi_bit_set == 0x80: a ^= 0x1b
+        b >>= 1
+    return p % 256
 
 #subWord() - takes a four-byte input word and substitutes each byte in that
 #word with its appropriate value from the S-Box. The S-box is provided (see Section 5.1.1).
@@ -98,23 +109,96 @@ def shiftRows(m):
 #mixColumns() - This transformation treats each column in state as a four-term polynomial.
 #This polynomial is multiplied (modulo another polynomial)
 #by a fixed polynomial with coefficients (see Sections 4.3 and 5.1.3).
-def mixSingleColumn(a, i):
-    t = a[0][i] ^ a[1][i] ^ a[2][i] ^ a[3][i]
-    u = a[0][i]
-    a[0][i] ^= t ^ xtime(a[0][i] ^ a[1][i])
-    a[1][i] ^= t ^ xtime(a[1][i] ^ a[2][i])
-    a[2][i] ^= t ^ xtime(a[2][i] ^ a[3][i])
-    a[3][i] ^= t ^ xtime(a[3][i] ^ u)
-
 def mixColumns(m):
-    for i in range(4):
-        mixSingleColumn(m, i)
+    tempM = copy.deepcopy(m)
+    for i in range(len(m)):
+        sum = ffMultiply(tempM[0][i], 0x02)
+        sum ^= ffMultiply(tempM[1][i], 0x03)
+        sum ^= ffMultiply(tempM[2][i], 0x01)
+        sum ^= ffMultiply(tempM[3][i], 0x01)
+        m[0][i] = sum
+
+        sum = ffMultiply(tempM[0][i], 0x01)
+        sum ^= ffMultiply(tempM[1][i], 0x02)
+        sum ^= ffMultiply(tempM[2][i], 0x03)
+        sum ^= ffMultiply(tempM[3][i], 0x01)
+        m[1][i] = sum
+
+        sum = ffMultiply(tempM[0][i], 0x01)
+        sum ^= ffMultiply(tempM[1][i], 0x01)
+        sum ^= ffMultiply(tempM[2][i], 0x02)
+        sum ^= ffMultiply(tempM[3][i], 0x03)
+        m[2][i] = sum
+
+        sum = ffMultiply(tempM[0][i], 0x03)
+        sum ^= ffMultiply(tempM[1][i], 0x01)
+        sum ^= ffMultiply(tempM[2][i], 0x01)
+        sum ^= ffMultiply(tempM[3][i], 0x02)
+        m[3][i] = sum
 
 #addRoundKey() - This transformation adds a round key to the State using XOR.
+def addRoundKey(matrix, key):
+        for i in range(4):
+            for j in range(4):
+                matrix[i][j] ^= key[i][j]
+
+#invSubBytes() - This transformation substitutes each byte in the State with its corresponding value from the inverse S-Box,
+#thus reversing the effect of a subBytes() operation.
+def invSubBytes(matrix):
+    for i in range(4):
+        for j in range(4):
+            x = hex(matrix[i][j])[-2]
+            if (x == "x"):
+                x = 0
+            else:
+                x = int(x, 16)
+            y = hex(matrix[i][j])[-1]
+            y = int(y, 16)
+
+            matrix[i][j] = InvSbox[x][y]
+
+#invShiftRows() - This transformation performs the inverse of shiftRows() on each row in the State (see Section 5.3.1)
+def invShiftRows(m):
+    m[1][0], m[1][1], m[1][2], m[1][3] = m[1][3], m[1][0], m[1][1], m[1][2]
+    m[2][0], m[2][1], m[2][2], m[2][3] = m[2][2], m[2][3], m[2][0], m[2][1]
+    m[3][0], m[3][1], m[3][2], m[3][3] = m[3][1], m[3][2], m[3][3], m[3][0]
+
+#invMixColumns() - This transformation is the inverse of mixColumns (see Section 5.3.3).
+def invMixColumns(m):
+    tempM = copy.deepcopy(m)
+    for i in range(len(m)):
+        sum = ffMultiply(tempM[0][i], 0x0e)
+        sum ^= ffMultiply(tempM[1][i], 0x0b)
+        sum ^= ffMultiply(tempM[2][i], 0x0d)
+        sum ^= ffMultiply(tempM[3][i], 0x09)
+        m[0][i] = sum
+
+        sum = ffMultiply(tempM[0][i], 0x09)
+        sum ^= ffMultiply(tempM[1][i], 0x0e)
+        sum ^= ffMultiply(tempM[2][i], 0x0b)
+        sum ^= ffMultiply(tempM[3][i], 0x0d)
+        m[1][i] = sum
+
+        sum = ffMultiply(tempM[0][i], 0x0d)
+        sum ^= ffMultiply(tempM[1][i], 0x09)
+        sum ^= ffMultiply(tempM[2][i], 0x0e)
+        sum ^= ffMultiply(tempM[3][i], 0x0b)
+        m[2][i] = sum
+
+        sum = ffMultiply(tempM[0][i], 0x0b)
+        sum ^= ffMultiply(tempM[1][i], 0x0d)
+        sum ^= ffMultiply(tempM[2][i], 0x09)
+        sum ^= ffMultiply(tempM[3][i], 0x0e)
+        m[3][i] = sum
+
+def addRoundKey(s, k):
+    for i in range(4):
+        for j in range(4):
+            s[i][j] ^= k[i][j]
 
 
 ####################
-#Helper Functions
+# Helper Functions
 ####################
 
 #print matrix as Hexidecimal
@@ -124,3 +208,24 @@ def conHex(matrix):
         for j in range(4):
             temp[i][j] = hex(matrix[i][j])
     return temp;
+
+print('\n')
+print('Encoding!!!!--------------------------------')
+print(conHex(state))
+subBytes(state)
+print(conHex(state))
+shiftRows(state)
+print(conHex(state))
+mixColumns(state)
+print(conHex(state))
+
+print('\n')
+
+print('Decoding!!!!---------------------------------')
+print(conHex(state))
+invMixColumns(state)
+print(conHex(state))
+invShiftRows(state)
+print(conHex(state))
+invSubBytes(state)
+print(conHex(state))
