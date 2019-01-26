@@ -351,7 +351,7 @@ def decrypt(cipherText, key):
     addRoundKey(state, roundKey)#w[0, Nb-1])
     print('round[ {}].ioutput\t {}'.format(i, matrixToByte(state)))
     return matrixToByte(state)
-    
+
 ####################
 # Helper Functions
 ####################
@@ -377,14 +377,14 @@ def wordToHex(words):
 
 def ffaTest():
     print('ffAdd Test:')
-    print(ffAdd(0x57,0x83) == 0xd4)
+    print('ffAdd(0x57,0x83) == 0xd4: ', ffAdd(0x57,0x83) == 0xd4)
     print('xtime Tests:')
-    print(xtime(0x57) == 0xae)
-    print(xtime(0xae) == 0x47)
-    print(xtime(0x47) == 0x8e)
-    print(xtime(0x8e) == 0x07)
+    print('xtime(0x57) == 0xae: ', xtime(0x57) == 0xae)
+    print('xtime(0xae) == 0x47: ', xtime(0xae) == 0x47)
+    print('xtime(0x47) == 0x8e: ', xtime(0x47) == 0x8e)
+    print('xtime(0x8e) == 0x07: ',xtime(0x8e) == 0x07)
     print('ffMultiply Test:')
-    print(ffMultiply(0x57,0x13) == 0xfe)
+    print('ffMultiply(0x57,0x13) == 0xfe: ', ffMultiply(0x57,0x13) == 0xfe)
 
 def keyExpansionTest():
     print('subWord tests:')
@@ -432,3 +432,23 @@ def decodeTest():
     print('invSubBytes')
     invSubBytes(state)
     print(conHex(state))
+
+def runTests():
+    print("AES-128")
+    print("encrypt----------------------------------")
+    a = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f')
+    print("decrypt----------------------------------")
+    decrypt(a, '000102030405060708090a0b0c0d0e0f')
+
+    print("AES-192")
+    print("encrypt----------------------------------")
+    b = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f1011121314151617')
+    print()
+    decrypt(b, '000102030405060708090a0b0c0d0e0f1011121314151617')
+    print("decrypt----------------------------------")
+
+    print("AES-256")
+    print("encrypt----------------------------------")
+    c = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f')
+    print("decrypt----------------------------------")
+    decrypt(c, '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f')
