@@ -216,26 +216,16 @@ def addRoundKey(s, k):
         for j in range(4):
             s[i][j] ^= k[i][j]
 
-# def keyExpansion(byte key[4*Nk], word w[Nb*(Nr+1)], Nk):
-#     begin
-#         word temp
-#         i = 0
-#         while (i < Nk)
-#             w[i] = word(key[4*i], key[4*i+1], key[4*i+2], key[4*i+3])
-#             i = i+1
-#         end while
-#         i = Nk
-#         while (i < Nb * (Nr+1)]
-#             temp = w[i-1]
-#             if (i mod Nk = 0)
-#             temp = SubWord(RotWord(temp)) xor Rcon[i/Nk]
-#             else if (Nk > 6 and i mod Nk = 4)
-#                 temp = SubWord(temp)
-#             end if
-#             w[i] = w[i-Nk] xor temp
-#             i = i + 1
-#         end while
-#     end
+def findNkNr(key):
+    if len(key) == 32:
+        return 4, 10
+    elif len(key) == 48:
+        return 6, 12
+    elif len(key) == 64:
+        return 8, 14
+    else:
+        print('key length is wrong')
+        return None
 
 def byteToMatrix(text):
     matrix = [[0 for _ in range(4)] for _ in range(4)]
@@ -258,27 +248,66 @@ def matrixToByte(matrix):
             bytes.append(cell)
     return ''.join(bytes[::-1])
 
-def encrypt(plainText, key): #looks like the input is always going to be 16 bytes of hex
-    return None
+def bytesToColumn(word):
+    column = []
+    info = '{:08x}'.format(word)
+    for i in range(0, len(info), 2):
+        column.append(info[i:i+2])
+    return column
 
-def decrypt(cipherText, key):
-    InvCipher(byte in[4*Nb], byte out[4*Nb], word w[Nb*(Nr+1)])
-    begin
-        byte state[4,Nb]
-        state = in
-        AddRoundKey(state, w[Nr*Nb, (Nr+1)*Nb-1]) // See Sec. 5.1.4
-        for round = Nr-1 step -1 downto 1
-            InvShiftRows(state) // See Sec. 5.3.1
-            InvSubBytes(state) // See Sec. 5.3.2
-            AddRoundKey(state, w[round*Nb, (round+1)*Nb-1])
-            InvMixColumns(state) // See Sec. 5.3.3
-        end for
-        InvShiftRows(state)
-        InvSubBytes(state)
-        AddRoundKey(state, w[0, Nb-1])
+def keyExpansion(key):
+    nk, nr = findNkNr(key)
+    keyWords = []
+    w = []
+    for i in range(0, len(key), 8):
+        keyWords.append(int(key[i:i+8],16))
+    for i in range(nk):
+        w.append(keyWords[i]) #word(key[4*i], key[4*i+1], key[4*i+2], key[4*i+3])
+    i = nk
+    while (i < 4 * (nr + 1)):
+        temp = w[i-1]
+        if i % nk == 0:
+            temp = subWord(rotWord(temp)) ^ Rcon[i//nk]
+        elif nk > 6 and i % nk == 4:
+            temp = subWord(temp)
+        w.append(w[i-nk] ^ temp)
+        i = i + 1
+    return w
 
-        out = state
-    end
+
+# def encrypt(plainText, key): #looks like the input is always going to be 16 bytes of hex
+#     state = byteToMatrix(plainText)
+#     nk, nr = findNkNr(key)
+#     w = keyExpansion(key)
+#     AddRoundKey(state, w[0, Nb-1]) # See Sec. 5.1.4
+#     for i in range round = 1 step 1 to Nr–1
+#         SubBytes(state) # See Sec. 5.1.1
+#         ShiftRows(state) # See Sec. 5.1.2
+#         MixColumns(state) # See Sec. 5.1.3
+#         AddRoundKey(state, w[round*Nb, (round+1)*Nb-1])
+#     end for
+#     SubBytes(state)
+#     ShiftRows(state)
+#     AddRoundKey(state, w[Nr*Nb, (Nr+1)*Nb-1])
+#     out = state
+
+# def decrypt(cipherText, key):
+#     InvCipher(byte in[4*Nb], byte out[4*Nb], word w[Nb*(Nr+1)])
+#     begin
+#         byte state[4,Nb]
+#         state = in
+#         AddRoundKey(state, w[Nr*Nb, (Nr+1)*Nb-1]) // See Sec. 5.1.4
+#         for round = Nr-1 step -1 downto 1
+#             InvShiftRows(state) // See Sec. 5.3.1
+#             InvSubBytes(state) // See Sec. 5.3.2
+#             AddRoundKey(state, w[round*Nb, (round+1)*Nb-1])
+#             InvMixColumns(state) // See Sec. 5.3.3
+#         end for
+#         InvShiftRows(state)
+#         InvSubBytes(state)
+#         AddRoundKey(state, w[0, Nb-1])
+#         out = state
+#     end
 
 ####################
 # Helper Functions
@@ -291,6 +320,12 @@ def conHex(matrix):
         for j in range(4):
             temp[i][j] = hex(matrix[i][j])
     return temp;
+
+def wordToHex(words):
+    temp = [0 for x in range(len(words))]
+    for i in range(len(words)):
+        temp[i] = hex(words[i])
+    return temp
 
 
 ####################
