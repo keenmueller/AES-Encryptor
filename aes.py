@@ -351,10 +351,7 @@ def decrypt(cipherText, key):
     addRoundKey(state, roundKey)#w[0, Nb-1])
     print('round[ {}].ioutput\t {}'.format(i, matrixToByte(state)))
     return matrixToByte(state)
-
-def equivalentICDecript(cipherText, key):
     
-
 ####################
 # Helper Functions
 ####################
