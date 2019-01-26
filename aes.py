@@ -236,8 +236,8 @@ def byteToMatrix(text):
         bytes.append(val)
     for j in range(4):
         for k in range(4):
-            matrix[k][j] = bytes[-1]
-            del bytes[-1]
+            matrix[k][j] = bytes[0]
+            del bytes[0]
     return matrix
 
 def matrixToByte(matrix):
@@ -246,14 +246,25 @@ def matrixToByte(matrix):
         for j in range(4):
             cell = '{:02x}'.format(matrix[j][i])
             bytes.append(cell)
-    return ''.join(bytes[::-1])
+    return ''.join(bytes)
 
 def bytesToColumn(word):
     column = []
     info = '{:08x}'.format(word)
     for i in range(0, len(info), 2):
-        column.append(info[i:i+2])
+        column.append(int(info[i:i+2], 16))
     return column
+
+def makeKey(words, min, max):
+    key = [[0 for x in range(4)] for y in range(4)]
+    columns = []
+    for i in range(min, max+1):
+        columns.append(bytesToColumn(words[i]))
+
+    for i in range(4):
+        for j in range(4):
+            key[j][i] = columns[i][j]
+    return key
 
 def keyExpansion(key):
     nk, nr = findNkNr(key)
@@ -262,7 +273,7 @@ def keyExpansion(key):
     for i in range(0, len(key), 8):
         keyWords.append(int(key[i:i+8],16))
     for i in range(nk):
-        w.append(keyWords[i]) #word(key[4*i], key[4*i+1], key[4*i+2], key[4*i+3])
+        w.append(keyWords[i])
     i = nk
     while (i < 4 * (nr + 1)):
         temp = w[i-1]
@@ -274,40 +285,75 @@ def keyExpansion(key):
         i = i + 1
     return w
 
+def encrypt(plainText, key): #looks like the input is always going to be 16 bytes of hex
+    state = byteToMatrix(plainText)
+    nk, nr = findNkNr(key)
+    w = keyExpansion(key)
 
-# def encrypt(plainText, key): #looks like the input is always going to be 16 bytes of hex
-#     state = byteToMatrix(plainText)
-#     nk, nr = findNkNr(key)
-#     w = keyExpansion(key)
-#     AddRoundKey(state, w[0, Nb-1]) # See Sec. 5.1.4
-#     for i in range round = 1 step 1 to Nr–1
-#         SubBytes(state) # See Sec. 5.1.1
-#         ShiftRows(state) # See Sec. 5.1.2
-#         MixColumns(state) # See Sec. 5.1.3
-#         AddRoundKey(state, w[round*Nb, (round+1)*Nb-1])
-#     end for
-#     SubBytes(state)
-#     ShiftRows(state)
-#     AddRoundKey(state, w[Nr*Nb, (Nr+1)*Nb-1])
-#     out = state
+    print('round[ 0].input\t', plainText)
+    print('round[ 0].k_sch\t', key)
+    roundKey = makeKey(w, 0, 3)
+    addRoundKey(state, roundKey) # See Sec. 5.1.4
+    i = 1
+    for round in range(1, nr): #round = 1 step 1 to Nr–1:
+        print('round[ {}].start\t {}'.format(round, matrixToByte(state)))
+        subBytes(state) # See Sec. 5.1.1
+        print('round[ {}].s_box\t {}'.format(round, matrixToByte(state)))
+        shiftRows(state) # See Sec. 5.1.2
+        print('round[ {}].s_row\t {}'.format(round, matrixToByte(state)))
+        mixColumns(state) # See Sec. 5.1.3
+        print('round[ {}].m_col\t {}'.format(round, matrixToByte(state)))
+        # print('makeKey with min:{} and max:{}'.format(round*4, (round*4)+3))
+        roundKey = makeKey(w, round*4, ((round*4)+3))
+        print('round[ {}].k_sch\t {}'.format(round, matrixToByte(roundKey)))
+        addRoundKey(state, roundKey) #w[round*Nb, (round+1)*Nb-1])
+        i += 1
+    print('round[{}].start\t {}'.format(i, matrixToByte(state)))
+    subBytes(state)
+    print('round[{}].s_box\t {}'.format(i, matrixToByte(state)))
+    shiftRows(state)
+    print('round[{}].s_row\t {}'.format(i, matrixToByte(state)))
+    roundKey = makeKey(w, nr*4, (nr*4)+3)
+    print('round[{}].k_sch\t {}'.format(i, matrixToByte(roundKey)))
+    addRoundKey(state, roundKey)#w[Nr*Nb, (Nr+1)*Nb-1])
+    print('round[10].output', matrixToByte(state))
+    return matrixToByte(state)
 
-# def decrypt(cipherText, key):
-#     InvCipher(byte in[4*Nb], byte out[4*Nb], word w[Nb*(Nr+1)])
-#     begin
-#         byte state[4,Nb]
-#         state = in
-#         AddRoundKey(state, w[Nr*Nb, (Nr+1)*Nb-1]) // See Sec. 5.1.4
-#         for round = Nr-1 step -1 downto 1
-#             InvShiftRows(state) // See Sec. 5.3.1
-#             InvSubBytes(state) // See Sec. 5.3.2
-#             AddRoundKey(state, w[round*Nb, (round+1)*Nb-1])
-#             InvMixColumns(state) // See Sec. 5.3.3
-#         end for
-#         InvShiftRows(state)
-#         InvSubBytes(state)
-#         AddRoundKey(state, w[0, Nb-1])
-#         out = state
-#     end
+def decrypt(cipherText, key):
+    state = byteToMatrix(cipherText)
+    nk, nr = findNkNr(key)
+    w = keyExpansion(key)
+    i = 0
+    print('round[ 0].iinput\t', cipherText)
+    roundKey = makeKey(w, nr*4, (nr*4)+3)
+    print('round[ 0].ik_sch\t', matrixToByte(roundKey))
+    addRoundKey(state, roundKey) #w[Nr*Nb, (Nr+1)*Nb-1]) # See Sec. 5.1.4
+    i = 1
+    for round in range(nr-1, 0, -1): #= Nr-1 step -1 downto 1
+        print('round[ {}].istart\t {}'.format(i, matrixToByte(state)))
+        invShiftRows(state) # See Sec. 5.3.1
+        print('round[ {}].is_row\t {}'.format(i, matrixToByte(state)))
+        invSubBytes(state) # See Sec. 5.3.2
+        print('round[ {}].is_box\t {}'.format(i, matrixToByte(state)))
+        roundKey = makeKey(w, round*4, ((round*4)+3))
+        print('round[ {}].ik_sch\t {}'.format(i, matrixToByte(roundKey)))
+        addRoundKey(state, roundKey)#w[round*Nb, (round+1)*Nb-1])
+        print('round[ {}].ik_add\t {}'.format(i, matrixToByte(state)))
+        invMixColumns(state) # See Sec. 5.3.3
+        i += 1
+    print('round[ {}].istart\t {}'.format(i, matrixToByte(state)))
+    invShiftRows(state)
+    print('round[ {}].is_row\t {}'.format(i, matrixToByte(state)))
+    invSubBytes(state)
+    print('round[ {}].is_box\t {}'.format(i, matrixToByte(state)))
+    roundKey = makeKey(w, 0, 3)
+    print('round[ {}].ik_sch\t {}'.format(i, matrixToByte(roundKey)))
+    addRoundKey(state, roundKey)#w[0, Nb-1])
+    print('round[ {}].ioutput\t {}'.format(i, matrixToByte(state)))
+    return matrixToByte(state)
+
+def equivalentICDecript(cipherText, key):
+    
 
 ####################
 # Helper Functions
@@ -324,7 +370,7 @@ def conHex(matrix):
 def wordToHex(words):
     temp = [0 for x in range(len(words))]
     for i in range(len(words)):
-        temp[i] = hex(words[i])
+        temp[i] = '{:08x}'.format(words[i])
     return temp
 
 
