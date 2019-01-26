@@ -291,8 +291,8 @@ def encrypt(plainText, key): #looks like the input is always going to be 16 byte
     w = keyExpansion(key)
 
     print('round[ 0].input\t', plainText)
-    print('round[ 0].k_sch\t', key)
     roundKey = makeKey(w, 0, 3)
+    print('round[ 0].k_sch\t', matrixToByte(roundKey))
     addRoundKey(state, roundKey) # See Sec. 5.1.4
     i = 1
     for round in range(1, nr): #round = 1 step 1 to Nr–1:
@@ -316,7 +316,7 @@ def encrypt(plainText, key): #looks like the input is always going to be 16 byte
     roundKey = makeKey(w, nr*4, (nr*4)+3)
     print('round[{}].k_sch\t {}'.format(i, matrixToByte(roundKey)))
     addRoundKey(state, roundKey)#w[Nr*Nb, (Nr+1)*Nb-1])
-    print('round[10].output', matrixToByte(state))
+    print('round[{}].output\t {}'.format(i, matrixToByte(state)))
     return matrixToByte(state)
 
 def decrypt(cipherText, key):
@@ -437,18 +437,37 @@ def runTests():
     print("AES-128")
     print("encrypt----------------------------------")
     a = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f')
-    print("decrypt----------------------------------")
+    print("\ndecrypt----------------------------------")
     decrypt(a, '000102030405060708090a0b0c0d0e0f')
 
-    print("AES-192")
+    print("\nAES-192")
     print("encrypt----------------------------------")
     b = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f1011121314151617')
     print()
     decrypt(b, '000102030405060708090a0b0c0d0e0f1011121314151617')
-    print("decrypt----------------------------------")
+    print("\ndecrypt----------------------------------")
 
-    print("AES-256")
+    print("\nAES-256")
     print("encrypt----------------------------------")
     c = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f')
-    print("decrypt----------------------------------")
+    print("\ndecrypt----------------------------------")
     decrypt(c, '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f')
+
+print("AES-128")
+print("encrypt----------------------------------")
+a = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f')
+print("\ndecrypt----------------------------------")
+decrypt(a, '000102030405060708090a0b0c0d0e0f')
+
+print("\nAES-192")
+print("encrypt----------------------------------")
+b = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f1011121314151617')
+print()
+decrypt(b, '000102030405060708090a0b0c0d0e0f1011121314151617')
+print("\ndecrypt----------------------------------")
+
+print("\nAES-256")
+print("encrypt----------------------------------")
+c = encrypt('00112233445566778899aabbccddeeff','000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f')
+print("\ndecrypt----------------------------------")
+decrypt(c, '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f')
